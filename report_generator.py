@@ -30,10 +30,11 @@ def _format_match_strength(obs: dict[str, Any]) -> str:
     pct = obs.get("confidence_percent")
     tier = obs.get("confidence_tier")
     if pct is not None and tier:
-        return f"{pct}% — {tier}"
+        p = float(pct)
+        return f"{p:.1f}% — {tier}"
     c = obs.get("confidence")
     if isinstance(c, (int, float)):
-        return f"{int(round(min(1.0, max(0.0, float(c))) * 100))}%"
+        return f"{round(min(1.0, max(0.0, float(c))) * 100, 1):.1f}%"
     return "—"
 
 
@@ -100,16 +101,13 @@ def build_docx(report: dict[str, Any], output_path: Path | None = None) -> bytes
     for a in report.get("recommended_actions") or ["Not Available"]:
         doc.add_paragraph(str(a), style="List Bullet")
 
-    doc.add_heading("6. Additional Notes", level=1)
-    doc.add_paragraph(report.get("additional_notes", "Not Available"))
-
-    doc.add_heading("7. Missing / Unclear Information", level=1)
+    doc.add_heading("6. Missing / Unclear Information", level=1)
     for m in report.get("missing_or_unclear") or ["Not Available"]:
         doc.add_paragraph(str(m), style="List Bullet")
 
     conflicts = report.get("conflicts") or []
     if conflicts:
-        doc.add_heading("8. Conflicts Between Reports", level=1)
+        doc.add_heading("7. Conflicts Between Reports", level=1)
         for c in conflicts:
             doc.add_paragraph(str(c), style="List Bullet")
 
@@ -207,16 +205,13 @@ def build_pdf(report: dict[str, Any], output_path: Path | None = None) -> bytes:
     for a in report.get("recommended_actions") or ["Not Available"]:
         story.append(Paragraph(f"• {str(a).replace('&', '&amp;')}", body))
 
-    add_h1("6. Additional Notes")
-    add_p(str(report.get("additional_notes", "Not Available")))
-
-    add_h1("7. Missing / Unclear Information")
+    add_h1("6. Missing / Unclear Information")
     for m in report.get("missing_or_unclear") or ["Not Available"]:
         story.append(Paragraph(f"• {str(m).replace('&', '&amp;')}", body))
 
     conflicts = report.get("conflicts") or []
     if conflicts:
-        add_h1("8. Conflicts Between Reports")
+        add_h1("7. Conflicts Between Reports")
         for c in conflicts:
             story.append(Paragraph(f"• {str(c).replace('&', '&amp;')}", body))
 

@@ -59,25 +59,6 @@ CUSTOM_CSS = """
 """
 
 
-@st.cache_data(show_spinner=False)
-def cached_full_pipeline(
-    ins_key: str,
-    therm_key: str,
-    ins_blob: bytes,
-    therm_blob: bytes,
-    ins_label: str,
-    therm_label: str,
-) -> dict:
-    """
-    One cached step: extract both PDFs and run rule-based analysis.
-    Keys must match the blobs (e.g. SHA-256 prefix).
-    """
-    ins_pdf = process_pdf(ins_blob, source_label=ins_label, image_dir=IMAGE_DIR)
-    therm_pdf = process_pdf(therm_blob, source_label=therm_label, image_dir=IMAGE_DIR)
-    report = analyze_reports(ins_pdf, therm_pdf)
-    return {"report": report, "ins_pdf": ins_pdf, "therm_pdf": therm_pdf}
-
-
 def append_step(log: list[str], msg: str) -> None:
     ts = datetime.now().strftime("%H:%M:%S")
     log.append(f"[{ts}] {msg}")
@@ -105,7 +86,7 @@ def ddr_to_markdown(report: dict, highlight: bool) -> str:
         ms = o.get("confidence_percent")
         mt = o.get("confidence_tier")
         if ms is not None and mt:
-            mss = f"{ms}% ({mt})"
+            mss = f"{float(ms):.1f}% ({mt})"
         else:
             c = o.get("confidence")
             mss = f"{int(round(float(c) * 100))}%" if isinstance(c, (int, float)) else "—"
@@ -129,7 +110,6 @@ def ddr_to_markdown(report: dict, highlight: bool) -> str:
     for a in report.get("recommended_actions") or []:
         lines.append(f"- {a}")
     lines.append("")
-    lines.append(f"### Additional notes\n{report.get('additional_notes', '')}\n")
     lines.append("### Missing / unclear\n")
     for m in report.get("missing_or_unclear") or []:
         lines.append(f"- {m}")
@@ -169,35 +149,40 @@ def main() -> None:
             ftherm = st.file_uploader("Upload thermal PDF", type=["pdf"], key="therm", label_visibility="visible")
 
     can_run = finsp is not None and ftherm is not None
+
+    if not can_run:
+        st.session_state.pop("ddr_result", None)
+        st.info("Upload both PDFs to enable analysis.")
+        return
+
+    ins_bytes = finsp.getvalue()
+    therm_bytes = ftherm.getvalue()
+    file_fingerprint = (
+        hashlib.sha256(ins_bytes).hexdigest(),
+        hashlib.sha256(therm_bytes).hexdigest(),
+    )
+    prev = st.session_state.get("ddr_result")
+    if prev is not None and prev.get("file_fingerprint") != file_fingerprint:
+        st.session_state.pop("ddr_result", None)
+
     _, cbtn, _ = st.columns([2, 1, 2])
     with cbtn:
         run = st.button("🚀 Generate DDR", type="primary", disabled=not can_run, use_container_width=True)
-
-    if not can_run:
-        st.info("Upload both PDFs to enable analysis.")
-        return
 
     if run:
         steps: list[str] = []
         try:
             append_step(steps, "Started pipeline")
-            ins_bytes = finsp.getvalue()
-            therm_bytes = ftherm.getvalue()
-            ins_key = hashlib.sha256(ins_bytes).hexdigest()[:24]
-            therm_key = hashlib.sha256(therm_bytes).hexdigest()[:24]
             ins_label = sanitize_filename(finsp.name or "inspection", max_len=40)
             therm_label = sanitize_filename(ftherm.name or "thermal", max_len=40)
 
             with st.spinner("Analyzing reports…"):
                 append_step(steps, "Extracting PDFs (PyMuPDF) + embedded images")
-                bundle = cached_full_pipeline(
-                    ins_key,
-                    therm_key,
-                    ins_bytes,
-                    therm_bytes,
-                    ins_label,
-                    therm_label,
-                )
+                ins_pdf = process_pdf(ins_bytes, source_label=ins_label, image_dir=IMAGE_DIR)
+                therm_pdf = process_pdf(therm_bytes, source_label=therm_label, image_dir=IMAGE_DIR)
+                append_step(steps, "Running analysis on this file pair (no cache)")
+                report = analyze_reports(ins_pdf, therm_pdf)
+                bundle = {"report": report, "ins_pdf": ins_pdf, "therm_pdf": therm_pdf}
                 append_step(steps, "Rule-based merge + severity + conflict scan complete")
                 append_step(steps, "Building DOCX and PDF exports")
                 docx_b = build_docx(bundle["report"])
@@ -209,6 +194,7 @@ def main() -> None:
                 "steps": steps,
                 "docx_bytes": docx_b,
                 "pdf_bytes": pdf_b,
+                "file_fingerprint": file_fingerprint,
             }
         except Exception:
             logger.exception("Pipeline failed")
