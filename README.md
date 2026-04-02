@@ -81,6 +81,21 @@ Open the local URL Streamlit prints (usually `http://localhost:8501`).
 3. Upload both files → **Generate DDR** → review metrics, JSON expander, markdown preview.
 4. Download **DOCX**, **PDF**, and **JSON**.
 
+## Evaluation rubric (coursework / portfolio)
+
+Many assessments use criteria like the following. This project is structured so you can point reviewers to **specific JSON fields** and UI sections:
+
+| Criterion | What to verify | Where it appears |
+| -------- | -------------- | ---------------- |
+| **Accuracy of extracted information** | Wording and locations match the PDFs; cues are not invented. | `observations[]` → `description`, `area`, `issue`, `matched_keywords`, `confidence_percent` / `confidence_tier`, `image_path`; compare to source PDFs. |
+| **Logical merging of inspection + thermal** | One narrative ties both reports together without contradicting either. | `combined_insight`, `thermal_observation`, `property_issue_summary`, `probable_root_cause`. |
+| **Handling of missing/conflicting details** | Gaps and disagreements are explicit, not hidden. | `missing_or_unclear`, `conflicts`. |
+| **Clarity of final DDR output** | A non-technical reader can follow priorities and next steps. | Streamlit preview, `severity_assessment`, `recommended_actions`, DOCX/PDF exports. |
+
+The same mapping is available in the app (**Evaluation criteria** expander) and in the JSON object **`evaluation_rubric`**.
+
+**Match strength (per observation):** Shown as **0–100%** plus **Strong / Moderate / Developing**. It reflects rule-based cue coverage (keywords, explicit location, thermal alignment), not a statistical confidence interval—use it to compare how well-supported each automated row is when discussing **accuracy**.
+
 ## Limitations
 
 - **Not true semantic AI**: conclusions follow **keyword/pattern rules**, not deep language understanding.

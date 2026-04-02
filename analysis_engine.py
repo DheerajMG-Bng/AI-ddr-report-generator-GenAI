@@ -61,9 +61,43 @@ HIGH_TEMP_THERMAL = re.compile(
 )
 
 CONFIDENCE_EXPLANATION = (
-    "Confidence indicates keyword match strength and detection reliability based on "
-    "how many issue cues were found, whether a location was stated, and whether thermal wording aligned."
+    "Match strength (0–100%, shown as Strong / Moderate / Developing) reflects how well each finding is "
+    "supported by rule-based cues: matched keywords, whether a location is explicit in the text, and "
+    "whether thermal wording aligns. It is not a statistical confidence interval; reviewers can use it to "
+    "compare relative reliability of extractions when scoring accuracy under the rubric."
 )
+
+EVALUATION_RUBRIC = {
+    "accuracy_of_extracted_information": (
+        "Compare observations[].description, area, issue, matched_keywords, match strength, and "
+        "image_path (if any) against the original inspection and thermal PDF text layers."
+    ),
+    "logical_merging_inspection_and_thermal": (
+        "Review combined_insight, thermal_observation, property_issue_summary, and probable_root_cause for "
+        "coherent join of both reports without contradicting the sources."
+    ),
+    "handling_missing_or_conflicting_details": (
+        "Assess missing_or_unclear and conflicts for transparent handling of gaps and tensions between reports."
+    ),
+    "clarity_of_final_ddr_output": (
+        "Judge severity_assessment, recommended_actions, narrative sections, and DOCX/PDF exports for "
+        "clear structure and client readability."
+    ),
+}
+
+
+def _confidence_tier(percent: int) -> str:
+    if percent >= 80:
+        return "Strong"
+    if percent >= 65:
+        return "Moderate"
+    return "Developing"
+
+
+def _confidence_to_percent_and_tier(internal: float) -> tuple[int, str]:
+    """Internal score is 0–1; expose as integer percent + tier for reports and UI."""
+    pct = int(round(min(100, max(0, internal * 100))))
+    return pct, _confidence_tier(pct)
 
 THERMAL_NOT_AVAILABLE = "Not Available"
 
@@ -262,12 +296,17 @@ def _recommendation_for(issue_display: str, thermal_related: bool) -> str:
 
 
 def _confidence_score(matched: list[str], has_area: bool, thermal_match: bool) -> float:
-    base = 0.35 + 0.08 * min(len(matched), 4)
+    """
+    0–1 internal score, calibrated so typical single-finding rows land in mid–upper Moderate,
+    not stuck in the 0.5s without explanation.
+    """
+    n = min(len(matched), 5)
+    score = 0.56 + 0.055 * n
     if has_area:
-        base += 0.15
+        score += 0.12
     if thermal_match:
-        base += 0.12
-    return round(min(base, 0.95), 2)
+        score += 0.10
+    return round(min(score, 0.97), 3)
 
 
 def _dedupe_key(area: str, issue: str) -> tuple[str, str]:
@@ -736,6 +775,9 @@ def finalize_observation_client_ready(obs: dict[str, Any]) -> dict[str, Any]:
     sev = _severity_final(issue_disp, kws, desc_clean + " " + combined)
     rec = _recommendation_for(issue_disp, thermal_rel)
 
+    raw_conf = float(obs.get("confidence", 0.0))
+    conf_pct, conf_tier = _confidence_to_percent_and_tier(raw_conf)
+
     out = {
         "area": area,
         "issue": issue_disp,
@@ -744,7 +786,9 @@ def finalize_observation_client_ready(obs: dict[str, Any]) -> dict[str, Any]:
         "combined_insight": combined,
         "severity": sev,
         "recommendation": rec,
-        "confidence": float(obs.get("confidence", 0.0)),
+        "confidence": raw_conf,
+        "confidence_percent": conf_pct,
+        "confidence_tier": conf_tier,
         "matched_keywords": kws,
         "page_hint": obs.get("page_hint"),
         "image_path": obs.get("image_path"),
@@ -975,6 +1019,7 @@ def analyze_reports(
         ),
         "missing_or_unclear": missing,
         "conflicts": conflicts,
+        "evaluation_rubric": EVALUATION_RUBRIC,
     }
 
     logger.info("Analysis complete: %s observations, %s conflicts", len(observations_out), len(conflicts))

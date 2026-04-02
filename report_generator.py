@@ -26,6 +26,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
+def _format_match_strength(obs: dict[str, Any]) -> str:
+    pct = obs.get("confidence_percent")
+    tier = obs.get("confidence_tier")
+    if pct is not None and tier:
+        return f"{pct}% — {tier}"
+    c = obs.get("confidence")
+    if isinstance(c, (int, float)):
+        return f"{int(round(min(1.0, max(0.0, float(c))) * 100))}%"
+    return "—"
+
+
 def _ensure_output_dir() -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return OUTPUT_DIR
@@ -60,7 +71,7 @@ def build_docx(report: dict[str, Any], output_path: Path | None = None) -> bytes
         doc.add_paragraph(f"Combined insight: {obs.get('combined_insight', 'Not Available')}")
         doc.add_paragraph(
             f"Severity: {obs.get('severity', 'Not Available')} | "
-            f"Confidence (rule score): {obs.get('confidence', 'Not Available')}"
+            f"Match strength: {_format_match_strength(obs)}"
         )
         doc.add_paragraph(f"Recommendation: {obs.get('recommendation', 'Not Available')}")
         img = obs.get("image_path")
@@ -167,7 +178,7 @@ def build_pdf(report: dict[str, Any], output_path: Path | None = None) -> bytes:
         add_p(f"Combined insight: {obs.get('combined_insight', 'Not Available')}")
         add_p(
             f"Severity: {obs.get('severity', 'Not Available')} | "
-            f"Confidence: {obs.get('confidence', 'Not Available')}"
+            f"Match strength: {_format_match_strength(obs)}"
         )
         add_p(f"Recommendation: {obs.get('recommendation', 'Not Available')}")
         img_path = obs.get("image_path")

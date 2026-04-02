@@ -13,7 +13,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from analysis_engine import ISSUE_KEYWORDS, THERMAL_KEYWORDS, analyze_reports, highlight_keywords
+from analysis_engine import (
+    EVALUATION_RUBRIC,
+    ISSUE_KEYWORDS,
+    THERMAL_KEYWORDS,
+    analyze_reports,
+    highlight_keywords,
+)
 from pdf_processing import process_pdf
 from report_generator import OUTPUT_DIR, build_docx, build_pdf, save_json_report
 from utils import ensure_dirs, sanitize_filename, setup_logging
@@ -96,10 +102,14 @@ def ddr_to_markdown(report: dict, highlight: bool) -> str:
             desc = highlight_keywords(desc, kws)
             comb = highlight_keywords(comb, kws)
         lines.append(f"**{i}. {o.get('area', 'N/A')} — {o.get('issue', '')}**  ")
-        lines.append(
-            f"- **Severity:** {o.get('severity')} | **Confidence:** {o.get('confidence')} "
-            f"_(higher = stronger keyword / cue alignment)_"
-        )
+        ms = o.get("confidence_percent")
+        mt = o.get("confidence_tier")
+        if ms is not None and mt:
+            mss = f"{ms}% ({mt})"
+        else:
+            c = o.get("confidence")
+            mss = f"{int(round(float(c) * 100))}%" if isinstance(c, (int, float)) else "—"
+        lines.append(f"- **Severity:** {o.get('severity')} | **Match strength:** {mss}")
         lines.append(f"- **Description:** {desc}")
         lines.append(f"- **Thermal:** {o.get('thermal_observation')}")
         lines.append(f"- **Combined:** {comb}")
@@ -138,6 +148,15 @@ def main() -> None:
         '<p class="sub-title">AI-powered inspection analysis (rule-based · no paid APIs)</p>',
         unsafe_allow_html=True,
     )
+
+    er = st.expander("📋 Evaluation criteria — how this DDR maps to the rubric", expanded=False)
+    with er:
+        st.caption(
+            "Use this checklist when grading or demoing: each item points to concrete fields in the report / JSON."
+        )
+        for key, text in EVALUATION_RUBRIC.items():
+            label = key.replace("_", " ").title()
+            st.markdown(f"**{label}** — {text}")
 
     col_ins, col_th = st.columns(2)
     with col_ins:
