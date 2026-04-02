@@ -81,6 +81,9 @@ def build_docx(report: dict[str, Any], output_path: Path | None = None) -> bytes
     doc.add_heading("4. Severity Assessment", level=1)
     doc.add_paragraph(f"Overall: {sev.get('overall', 'Not Available')}")
     doc.add_paragraph(f"Reasoning: {sev.get('reasoning', 'Not Available')}")
+    ce = report.get("confidence_explanation")
+    if ce:
+        doc.add_paragraph(str(ce))
 
     doc.add_heading("5. Recommended Actions", level=1)
     for a in report.get("recommended_actions") or ["Not Available"]:
@@ -186,6 +189,8 @@ def build_pdf(report: dict[str, Any], output_path: Path | None = None) -> bytes:
     add_h1("4. Severity Assessment")
     add_p(f"Overall: {sev.get('overall', 'Not Available')}")
     add_p(f"Reasoning: {sev.get('reasoning', 'Not Available')}")
+    if report.get("confidence_explanation"):
+        add_p(str(report["confidence_explanation"]))
 
     add_h1("5. Recommended Actions")
     for a in report.get("recommended_actions") or ["Not Available"]:

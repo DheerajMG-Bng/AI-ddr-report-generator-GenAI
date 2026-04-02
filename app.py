@@ -33,16 +33,22 @@ st.set_page_config(
 
 CUSTOM_CSS = """
 <style>
-    .main-title { font-size: 2.35rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
-    .sub-title { color: #6b7280; font-size: 1.05rem; margin-bottom: 1.5rem; }
-    .card {
-        background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.1rem 1.25rem;
-        margin-bottom: 1rem;
+    .main-title {
+        font-size: 2.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.25rem;
+        line-height: 1.15;
+    }
+    .sub-title {
+        font-size: 1.05rem;
+        margin-bottom: 1.25rem;
+        opacity: 0.82;
     }
     div[data-testid="stMetricValue"] { font-size: 1.35rem; }
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(128, 128, 128, 0.06);
+    }
 </style>
 """
 
@@ -90,7 +96,10 @@ def ddr_to_markdown(report: dict, highlight: bool) -> str:
             desc = highlight_keywords(desc, kws)
             comb = highlight_keywords(comb, kws)
         lines.append(f"**{i}. {o.get('area', 'N/A')} — {o.get('issue', '')}**  ")
-        lines.append(f"- **Severity:** {o.get('severity')} | **Confidence:** {o.get('confidence')}")
+        lines.append(
+            f"- **Severity:** {o.get('severity')} | **Confidence:** {o.get('confidence')} "
+            f"_(higher = stronger keyword / cue alignment)_"
+        )
         lines.append(f"- **Description:** {desc}")
         lines.append(f"- **Thermal:** {o.get('thermal_observation')}")
         lines.append(f"- **Combined:** {comb}")
@@ -104,6 +113,8 @@ def ddr_to_markdown(report: dict, highlight: bool) -> str:
     lines.append(
         f"### Severity assessment\n- **Overall:** {sev.get('overall')}\n- **Reasoning:** {sev.get('reasoning')}\n"
     )
+    if report.get("confidence_explanation"):
+        lines.append(f"*Confidence:* {report['confidence_explanation']}\n")
     lines.append("### Recommended actions\n")
     for a in report.get("recommended_actions") or []:
         lines.append(f"- {a}")
@@ -130,18 +141,18 @@ def main() -> None:
 
     col_ins, col_th = st.columns(2)
     with col_ins:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("#### 📋 Inspection report")
-        finsp = st.file_uploader("Upload inspection PDF", type=["pdf"], key="insp")
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("#### 📋 Inspection report")
+            finsp = st.file_uploader("Upload inspection PDF", type=["pdf"], key="insp", label_visibility="visible")
     with col_th:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("#### 🌡️ Thermal report")
-        ftherm = st.file_uploader("Upload thermal PDF", type=["pdf"], key="therm")
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("#### 🌡️ Thermal report")
+            ftherm = st.file_uploader("Upload thermal PDF", type=["pdf"], key="therm", label_visibility="visible")
 
     can_run = finsp is not None and ftherm is not None
-    run = st.button("🚀 Generate DDR", type="primary", disabled=not can_run, use_container_width=False)
+    _, cbtn, _ = st.columns([2, 1, 2])
+    with cbtn:
+        run = st.button("🚀 Generate DDR", type="primary", disabled=not can_run, use_container_width=True)
 
     if not can_run:
         st.info("Upload both PDFs to enable analysis.")
