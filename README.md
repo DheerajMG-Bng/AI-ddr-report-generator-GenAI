@@ -1,15 +1,61 @@
-# DDR Report Generator
+####  Urbanroof Internship Assignment Work
 
-**Detailed Diagnostic Report (DDR)** from two PDFs—**Inspection** and **Thermal**—using a **100% free, rule-based** pipeline (no OpenAI, Gemini, or paid APIs). The app is built for **Streamlit Cloud** and a clean recruiter-facing demo.
+---
 
-## Project overview
+#  AI DDR Report Generator
 
-The system:
+### (Detailed Diagnostic Report Generator)
 
-1. Extracts **text and embedded images** from both PDFs with **PyMuPDF (fitz)**.
-2. Runs a **keyword- and pattern-based “AI” engine** (`analysis_engine.py`) to find issues, areas, severity, recommendations, and conflicts.
-3. Produces structured **JSON** plus **DOCX** (python-docx) and **PDF** (ReportLab) reports.
-4. Presents results in a **wide-layout Streamlit** UI with metrics, expanders, downloads, and optional keyword highlighting.
+🔗 **Live App:** https://ai-ddr-report-generator-genai-dheeraj-m-g.streamlit.app/
+
+---
+
+##  Overview
+
+The **AI DDR Report Generator** is an end-to-end system that converts unstructured **Inspection Reports** and **Thermal Reports** into a **structured, client-ready Detailed Diagnostic Report (DDR)**.
+
+This project focuses on **AI workflow design, reasoning, and system building**, rather than relying on paid APIs.
+
+---
+
+##  Problem Statement
+
+In real-world scenarios:
+
+* Inspection data is **unstructured**
+* Thermal reports are **hard to interpret**
+* Clients struggle to understand technical findings
+
+ The goal is to **automate this process** and generate a clear, structured, and professional report.
+
+---
+
+##  Solution
+
+This system:
+
+1.  Accepts **Inspection + Thermal PDF reports**
+2.  Extracts **text and images**
+3.  Applies a **rule-based AI engine**
+4.  Merges insights intelligently
+5.  Generates a **structured DDR report**
+6.  Outputs **DOCX, PDF, and JSON**
+
+---
+
+##  AI Approach 
+
+Instead of using paid APIs, this project implements a **rule-based AI reasoning system** that simulates:
+
+*  Information extraction
+*  Multi-source data fusion
+*  Conflict handling
+*  Missing data handling
+*  Severity classification
+*  Logical inference
+
+
+---
 
 ## Architecture (text diagram)
 
@@ -34,83 +80,155 @@ The system:
 
 - **`utils.py`**: logging helpers, safe strings, directory creation.
 - **`report_generator.py`**: document assembly and image placement under each observation when paths exist.
+---
 
-## How it works (step-by-step)
+##  Project Structure
 
-1. **Upload** inspection and thermal PDFs in the Streamlit UI.
-2. **Extract** per-page text and images; images are written under `extracted_images/`.
-3. **Preprocess** text (lowercase, normalize whitespace, sentence split).
-4. **Detect** issue keywords (e.g. crack, leakage, moisture) and thermal phrases (e.g. hot spot, thermal anomaly).
-5. **Detect** areas (living room, kitchen, bedroom, bathroom, roof, wall, ceiling) or mark **Not Available**.
-6. **Build observations** with area, issue label, description, thermal text, and **combined_insight**.
-7. **Deduplicate** rows with the same area + issue.
-8. **Assign severity** using rules (e.g. crack + leakage → High; moisture/damp → Medium; minor discoloration → Low).
-9. **Recommendations** are mapped from issue types (e.g. leakage → plumbing; crack → structural check; thermal → insulation).
-10. **Conflicts**: e.g. inspection suggests “no issue” while thermal mentions high temperature / hot spots.
-11. **Images** are mapped to observations by **page match** when possible, then leftover images are distributed.
-12. **Export** DOCX, PDF, and JSON; preview markdown in the app.
-
-## Setup
-
-**Requirements:** Python 3.10+ recommended.
-
-```bash
-cd urbanroof-project
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-pip install -r requirements.txt
-streamlit run app.py
+```
+/project
+│── app.py                  # Streamlit UI
+│── pdf_processing.py       # PDF text + image extraction
+│── analysis_engine.py      # Core AI logic (rule-based)
+│── report_generator.py     # Report creation (DOCX + PDF)
+│── utils.py                # Helper functions
+│── requirements.txt        # Dependencies
+│── README.md
+│
+├── extracted_images/       # Extracted images from PDFs
+├── outputs/                # Generated reports
 ```
 
-Open the local URL Streamlit prints (usually `http://localhost:8501`).
+---
 
-## Deploy on Streamlit Community Cloud
+##  Features
 
-1. Push this folder to a GitHub repository.
-2. In [Streamlit Cloud](https://streamlit.io/cloud), **New app** → select the repo.
-3. Set **Main file path** to `app.py`.
-4. Deploy. The app uses only `requirements.txt` dependencies—no API keys.
+ Upload 2 PDFs (Inspection + Thermal)
+ Extract text and images automatically
+ Detect issues (damp, crack, mold, leakage)
+ Merge multi-source insights
+ Assign severity levels
+ Generate recommendations
+ Handle missing/conflicting data
+ Produce structured DDR report
+ Download DOCX, PDF, JSON
 
-**Note:** Ephemeral filesystem on Cloud may discard `extracted_images/` between sessions; downloads still work in-session.
+---
 
-## Demo flow
+##  Output Structure (DDR)
 
-1. Prepare two PDFs with a **text layer** (scanned-only PDFs without OCR will yield little text).
-2. Include sample phrases such as *“hairline crack in the bathroom ceiling”* and *“thermal anomaly near the roof”* for rule hits.
-3. Upload both files → **Generate DDR** → review metrics, JSON expander, markdown preview.
-4. Download **DOCX**, **PDF**, and **JSON**.
+The system generates:
 
-## Evaluation rubric (coursework / portfolio)
+1. Property Issue Summary
+2. Area-wise Observations
+3. Probable Root Cause
+4. Severity Assessment
+5. Recommended Actions
+6. Additional Notes
+7. Missing / Unclear Information
 
-Many assessments use criteria like the following. This project is structured so you can point reviewers to **specific JSON fields** and UI sections:
+---
 
-| Criterion | What to verify | Where it appears |
-| -------- | -------------- | ---------------- |
-| **Accuracy of extracted information** | Wording and locations match the PDFs; cues are not invented. | `observations[]` → `description`, `area`, `issue`, `matched_keywords`, `confidence_percent` / `confidence_tier`, `image_path`; compare to source PDFs. |
-| **Logical merging of inspection + thermal** | One narrative ties both reports together without contradicting either. | `combined_insight`, `thermal_observation`, `property_issue_summary`, `probable_root_cause`. |
-| **Handling of missing/conflicting details** | Gaps and disagreements are explicit, not hidden. | `missing_or_unclear`, `conflicts`. |
-| **Clarity of final DDR output** | A non-technical reader can follow priorities and next steps. | Streamlit preview, `severity_assessment`, `recommended_actions`, DOCX/PDF exports. |
+##  Screenshots 
+### 🔹 Upload Interface
 
-The same mapping is available in the app (**Evaluation criteria** expander) and in the JSON object **`evaluation_rubric`**.
+<img width="1913" height="686" alt="image" src="https://github.com/user-attachments/assets/6d6f0fd6-22bd-4171-9c7b-2293662ea524" />
 
-**Match strength (per observation):** Shown as **0–100%** plus **Strong / Moderate / Developing**. It reflects rule-based cue coverage (keywords, explicit location, thermal alignment), not a statistical confidence interval—use it to compare how well-supported each automated row is when discussing **accuracy**.
 
-## Limitations
+### 🔹 Processing Summary
 
-- **Not true semantic AI**: conclusions follow **keyword/pattern rules**, not deep language understanding.
-- **Scanned PDFs** need OCR upstream; otherwise extraction is sparse.
-- **Image-to-issue mapping** is heuristic (page alignment + fallback order), not vision AI.
-- **Negation handling** is approximate (short window before a keyword).
-- **Severity and root cause** are template-style inferences, not engineering sign-off.
+<img width="1813" height="1024" alt="image" src="https://github.com/user-attachments/assets/5c177553-79c9-4728-a8b7-7433c1ffa41b" />
 
-## Future improvements
 
-- Lightweight **on-device** OCR (e.g. Tesseract) for scanned reports.
-- **Configurable** keyword lists and YAML rules for different property types.
-- Richer **negation and entity** parsing without paid APIs.
-- **PDF output** styling (headers, footers, table of contents).
+### 🔹 Final Report Output
 
-## License
+<img width="1811" height="1011" alt="image" src="https://github.com/user-attachments/assets/b7d4fcb7-8917-4497-87c9-06dce387a46d" />
 
-Use and modify for portfolio and learning. Verify suitability before any real-world inspections or legal use.
+
+---
+
+##  Example Use Cases
+
+* Residential property inspection
+* Construction quality analysis
+* Maintenance diagnostics
+* Real estate reporting
+
+---
+
+##  Limitations
+
+* Rule-based logic (no deep NLP understanding level)
+* Image-to-text mapping is basic
+* Complex language variations may not be fully captured
+
+---
+
+##  Future Improvements
+
+* Integrate LLMs (GPT / Gemini)
+* Add NLP-based entity extraction
+* Improve image-to-observation mapping
+* Add RAG-based document understanding
+* Enhance severity prediction with ML
+
+---
+
+##  What I Learned 
+
+This project helped me understand:
+
+### 🔹 AI / ML Concepts
+
+* Information extraction
+* Feature engineering (keywords → insights)
+* Classification logic (severity detection)
+
+### 🔹 Generative AI Concepts
+
+* Prompt design (initial approach)
+* Structured output thinking
+* AI workflow design
+
+### 🔹 Agentic AI Thinking
+
+* Multi-step reasoning pipeline
+* Decision-based processing
+* Autonomous report generation
+
+### 🔹 System Design
+
+* End-to-end pipeline building
+* Modular architecture
+* Error handling and robustness
+
+### 🔹 Real-world Engineering
+
+* Handling incomplete data
+* Conflict resolution
+* Building production-ready systems
+
+---
+
+##  Tech Stack
+
+* Python
+* Streamlit
+* PyMuPDF (fitz)
+* python-docx
+* ReportLab
+* Pillow
+
+---
+
+##  Final Note
+
+It demonstrates (my work):
+
+✔ Problem solving
+✔ System design
+✔ AI reasoning
+✔ Real-world applicability
+
+---
+
+⭐ If you found this useful, feel free to star the repo!
