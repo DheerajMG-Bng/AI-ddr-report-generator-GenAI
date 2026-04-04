@@ -61,19 +61,19 @@ Instead of using paid APIs, this project implements a **rule-based AI reasoning 
 
 ```
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Streamlit  │────▶│  pdf_processing  │────▶│ extracted_images│
+│  Streamlit  │────▶│  pdf_processing  │───▶│ extracted_images│
 │    app.py   │     │   (PyMuPDF)      │     │   + page text   │
 └──────┬──────┘     └────────┬─────────┘     └────────┬────────┘
-       │                     │                         │
-       │                     ▼                         │
+       │                     │                        │
+       │                     ▼                        │
        │             ┌──────────────────┐             │
-       │             │  analysis_engine │◀────────────┘
+       │             │  analysis_engine │◀───────────┘
        │             │  (rules + merge) │
        │             └────────┬─────────┘
        │                      │
        │                      ▼
        │             ┌──────────────────┐     ┌─────────────┐
-       └────────────▶│ report_generator │────▶│  outputs/   │
+       └────────────▶│ report_generator │───▶│   outputs/  │
                      │ DOCX + PDF + JSON      │  (optional) │
                      └──────────────────┘     └─────────────┘
 ```
@@ -129,17 +129,17 @@ The system generates:
 ---
 
 ##  Screenshots 
-### 🔹 Upload Interface
+### -🔹 Upload Interface
 
 <img width="1913" height="686" alt="image" src="https://github.com/user-attachments/assets/6d6f0fd6-22bd-4171-9c7b-2293662ea524" />
 
 
-### 🔹 Processing Summary
+### -🔹 Processing Summary
 
 <img width="1813" height="1024" alt="image" src="https://github.com/user-attachments/assets/5c177553-79c9-4728-a8b7-7433c1ffa41b" />
 
 
-### 🔹 Final Report Output
+### -🔹 Final Report Output
 
 <img width="1811" height="1011" alt="image" src="https://github.com/user-attachments/assets/b7d4fcb7-8917-4497-87c9-06dce387a46d" />
 
@@ -231,4 +231,4 @@ It demonstrates (my work):
 
 ---
 
-⭐ If you found this useful, feel free to star the repo!
+### ⭐ If you found this useful, feel free to star the repo!
